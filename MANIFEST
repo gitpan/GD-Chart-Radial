@@ -1,0 +1,9 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+TODO
+t/GD-Chart-Radial.t
+examples/radial.pl
+lib/GD/Chart/Radial.pm
+META.yml                                 Module meta-data (added by MakeMaker)

@@ -1,0 +1,6 @@
+Revision history for Perl extension GD::Chart::Radial.
+
+0.01  Mon Jul 19 14:21:12 2004
+	- original version; created by h2xs 1.23 with options
+		-X GD::Chart::Radial
+
