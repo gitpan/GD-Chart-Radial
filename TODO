@@ -1,8 +1,11 @@
 TODO
 ----
 
-Add notes, and other improved features based on original perl script
-
-Add test suite
-
+1) Add more colours, and the ability to specify own
+2) Allow choice of background colour
+3) Make legend box optional
+4) Allow choice of start position as per a clock face (0 .. 12) or via the
+   angle of rotation (0..360), both starting from top dead-centre.
+5) Allow more point types (e.g. cross, unfilled circle, unfilled square,
+   unfilled triangle and unfilled diamond)
 

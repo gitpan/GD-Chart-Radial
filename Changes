@@ -1,6 +1,26 @@
 Revision history for Perl extension GD::Chart::Radial.
 
-0.01  Mon Jul 19 14:21:12 2004
+0.02	31/05/2007
+	- Maintaince now passes to Barbie.
+	- More POD
+	- width and height passed to new() actually work now!
+	- Added the ability to specify style and colours
+	- Added more colours (yellow and orange)
+	- Made y_max_value and y_tick_number optional, with the defaults 
+	  being calculated from the data sets themselves
+	- Added a 'Fill' style, which allows the datasets to be filled
+	  polygons rather than a set of lines.
+	- Labels were randomly place, now ordered as per the first data set 
+	  and listed clockwise around the chart points.
+	- Repositioned the start point at top dead-centre rather than the 
+	  furthest point on the X axis.
+	- Ensure scale number labels are printed on top of the chart. Note
+	  that the outer most scale number is omitted due to it conflicting 
+	  with the point label.
+	- more tests
+	- Devel::Cover = 95.8%
+
+0.01	Mon Jul 19 14:21:12 2004
 	- original version; created by h2xs 1.23 with options
 		-X GD::Chart::Radial
 

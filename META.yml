@@ -1,11 +1,41 @@
-# http://module-build.sourceforge.net/META-spec.html
-#XXXXXXX This is a prototype!!!  It will change in the future!!! XXXXX#
-name:         GD-Chart-Radial
-version:      0.01
-version_from: lib/GD/Chart/Radial.pm
-installdirs:  site
-requires:
-    GD:                            2
+--- #YAML:1.0
+name:                     GD-Chart-Radial
+version:                  0.02
+abstract:                 plot and output Radial or Radar charts using the GD library.
+author:
+  - Aaron J Trevena <aaron@droogs.org>
 
-distribution_type: module
-generated_by: ExtUtils::MakeMaker version 6.17
+license:                  perl
+distribution_type:        module
+installdirs:              site
+
+requires:
+  GD:                     2.00
+  Test::More:             0.70
+recommends:
+  Test::More:             0.70
+  Digest::MD5:            0
+  Test::Pod:              1.00
+  Test::Pod::Coverage:    1.08
+  Test::YAML::Meta:       0.04
+build_requires:
+  Test::More:             0.70
+  IO::File:               0
+
+provides:
+  GD::Chart::Radial:
+    file:     lib/GD/Chart/Radial.pm
+    version:  0.02
+no_index:
+  directory:
+    - t
+    - examples
+
+resources:
+  license:    http://dev.perl.org/licenses/
+  bugtracker: http://rt.cpan.org/Public/Dist/Display.html?Name=GD-Chart-Radial
+
+meta-spec:
+   version:   1.3
+   url:       http://module-build.sourceforge.net/META-spec-v1.3.html
+generated_by: Hand 1.0
