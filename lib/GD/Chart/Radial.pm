@@ -1,6 +1,7 @@
 #####################################################################
 # Radial - A module to generate radial charts as JPG and PNG images #
 # (c) Copyright 2002,2004-2007 Aaron J  Trevena                     #
+# (c) Copyright 2007 Barbie                                         #
 #####################################################################
 package GD::Chart::Radial;
 
@@ -9,7 +10,7 @@ use warnings;
 use Data::Dumper;
 use GD;
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 =head1 NAME
 
@@ -34,8 +35,36 @@ A radial chart has multiple axis spread out from the centre, like
 spokes on a wheel. Each axis represents a particular measurement.
 Values are plotted by marking the value for what is being measured
 on each axis and optionally joining these points. The result can
-look like a spiderweb or a radar depending on you plot the
+look like a spiderweb or a radar depending on how you plot the
 values.
+
+=cut
+
+my %COLOURS = (
+    white      => [255,255,255],
+    black      => [0,0,0],
+    red        => [255,0,0],
+    blue       => [0,0,255],
+    purple     => [230,0,230],
+    green      => [0,255,0],
+    grey       => [128,128,128],
+    light_grey => [170,170,170],
+    dark_grey  => [75,75,75],
+    cream      => [200,200,240],
+    yellow     => [255,255,0],
+    orange     => [255,128,0],
+);
+
+my %FONT = (
+    100 => [undef, gdSmallFont, gdTinyFont, gdTinyFont],
+    200 => [undef, gdMediumBoldFont, gdSmallFont, gdTinyFont],
+    300 => [undef, gdLargeFont, gdMediumBoldFont, gdSmallFont],
+    400 => [undef, gdGiantFont, gdLargeFont, gdMediumBoldFont],
+    500 => [undef, gdGiantFont, gdGiantFont, gdLargeFont],
+    600 => [undef, gdGiantFont, gdGiantFont, gdGiantFont],
+);
+
+my @FONT = sort keys %FONT;
 
 =head1 METHODS
 
@@ -76,7 +105,7 @@ or
         y_max_value       => $max,
         y_tick_number     => 5,
         style             => 'Notch',
-        colours           => [qw/light_grey red blue green/]
+        colours           => [qw/white black red blue green/],
        );
 
 Style can be Notch, Circle, Polygon or Fill. The default style is Notch. Where
@@ -84,14 +113,18 @@ style is set to Fill, the data sets are also filled, as opposed to lines drawn
 for all other styles
 
 Colours can be any of the following: white, black, red, blue, purple, green, 
-grey, light_grey, dark_grey, cream, yellow, orange. The first colour in the
-list is used exclusively for the scale markings. For the remaining colours, if
-there are less colours than data sets, the additional data sets will reuse 
-colours from the list. The default list of colours are light_grey, red, blue 
-and green.
+grey, light_grey, dark_grey, cream, yellow, orange. The first colour is used
+for the background colour, the second is used for the scale markings, while
+the remaining colours represent the different data sets. If there are less 
+colours than data sets, colours will be taken from the unused set of defined 
+colours. 
 
-Note that if you only specify one colour, then that colour will be used for
-the scale markings and the data sets will use the default list of colours.
+The default list of colours are white, black, red, blue and green, i.e. white
+background, black scale markings and data sets in red blue and green.
+
+Both legend and title can be undefined. If this is the case then the relavent
+entry will not appear on the graph. This is useful if you plan to use other
+forms of labelling along with the graph, and only require the image.
 
 =cut
 
@@ -106,7 +139,8 @@ sub set {
 
 =head2 plot
 
-This method plots the chart based on the data provided and the attributes of the graph
+This method plots the chart based on the data provided and the attributes of 
+the graph.
 
   my @data = ([qw/A B C D E F G/],
               [12,21,23,30,23,22,5],
@@ -117,17 +151,34 @@ This method plots the chart based on the data provided and the attributes of the
 
 sub plot {
   my $self = shift;
+  return    unless(@_);
+
   my @values = @{shift()};
   my @labels = @{shift(@values)};
   my @records;
-  my $r = 0;
-  my $Colour  = $self->{colours} ? shift @{$self->{colours}} : 'light_grey';
-  my @colours = $self->{colours} ? @{$self->{colours}} : qw/red blue green yellow orange/;
+
+  my $BGColour  = $self->{colours} ? shift @{$self->{colours}} : 'white';
+  my $FGColour  = $self->{colours} ? shift @{$self->{colours}} : 'black';
+  my @DSColours = $self->{colours} ? @{$self->{colours}} : qw/red blue green yellow orange/;
+
+  # try and avoid running out of colours
+  my %AllColours = map {$_ => 1} keys %COLOURS;
+  delete $AllColours{$_}   for($BGColour,$FGColour,@DSColours);
+  push @DSColours, keys %AllColours;
+  while(scalar(@labels) > scalar(@DSColours) || scalar(@values) > scalar(@DSColours)) {
+    push @DSColours, @DSColours;
+  }
+
+print STDERR "\n#Background=$BGColour"                              if($self->{debug});
+print STDERR "\n#Markings  =$FGColour"                              if($self->{debug});
+print STDERR "\n#Labels    =".(join(",",@DSColours))                if($self->{debug});
+print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{debug});
 
   my $Max = 0;
+  my $r = 0;
   foreach my $values (@values) {
-    my $record;
-    $record = { Label => $self->{legend}->[$r], Colour => $colours[$r] };
+    my $record = { Colour => $DSColours[$r] };
+    $record->{Label} = $self->{legend}->[$r]    if($self->{legend});
     my $v = 0;
     foreach my $value (@$values) {
       $record->{Values}->{$labels[$v]} = $value;
@@ -141,16 +192,16 @@ sub plot {
   $self->{records} = \@records;
 
   my $PI = $self->{PI};
-  my $title = $self->{title};
 
   # style can be Fill, Circle, Polygon or Notch
   my %scale = (
            Max       => $self->{y_max_value}    || $Max,
            Divisions => $self->{y_tick_number}  || $Max,
-           Style     => $self->{style}          || "Fill",
-           Colour    => $Colour
+           Style     => $self->{style}          || "Notch",
+           Colour    => $FGColour
           );
 
+  # calculate image dimensions
   my (@axis, %axis_lookup);
   my $longest_axis_label = 0;
   my $a = 0;
@@ -163,57 +214,49 @@ sub plot {
   }
 
   my $number_of_axis = scalar @axis;
-  my $legend_height  = 8 + (15 * scalar @{$self->{records}});
+  my $legend_height = 0;
+
+  if($self->{legend}) {
+      $legend_height = 8 + (15 * scalar @{$self->{records}});
+  }
 
   my $left_space    = 15 + $longest_axis_label * 6;
   my $right_space   = 15 + $longest_axis_label * 6;
-  my $top_space     = 50;
-  my $bottom_space  = 30 + $legend_height;
+  my $top_space     = $self->{title} ? 50 : 15;
+  my $bottom_space  = $self->{legend} ? 30 + $legend_height : 15;
 
-  my $min_radius    = 100;
-  my $max_width     = $self->{width}  || $min_radius;
-  my $max_height    = $self->{height} || $min_radius;
-  $max_width        = $min_radius   if($max_width  < $min_radius);
-  $max_height       = $min_radius   if($max_height < $min_radius);
+  unless($self->{width})  { $self->{width}  = 200 + $left_space + $right_space; }
+  unless($self->{height}) { $self->{height} = 200 + $top_space + $bottom_space; }
 
-  my $x_centre  = $left_space + $max_width;
-  my $y_centre  = $top_space + $max_height;
-  my $height    = (2 * $max_height) + $bottom_space + $top_space;
-  my $width     = (2 * $max_width) + $left_space + $right_space;
+  my $x_radius = int(($self->{width}  - $left_space - $right_space) / 2);
+  my $y_radius = int(($self->{height} - $top_space - $bottom_space) / 2);
+  my $min_radius = 100;
 
-  $self->{_im} = new GD::Image($width,$height);
+  $x_radius = $min_radius   if($x_radius < $min_radius);
+  $y_radius = $min_radius   if($y_radius < $min_radius);
+  $x_radius = $y_radius     if($x_radius > $y_radius);
+  $y_radius = $x_radius     if($y_radius > $x_radius);
 
-  my %colours = (
-         white      => $self->{_im}->colorAllocate(255,255,255),
-         black      => $self->{_im}->colorAllocate(0,0,0),
-         red        => $self->{_im}->colorAllocate(255,0,0),
-         blue       => $self->{_im}->colorAllocate(0,0,255),
-         purple     => $self->{_im}->colorAllocate(230,0,230),
-         green      => $self->{_im}->colorAllocate(0,255,0),
-         grey       => $self->{_im}->colorAllocate(128,128,128),
-         light_grey => $self->{_im}->colorAllocate(170,170,170),
-         dark_grey  => $self->{_im}->colorAllocate(75,75,75),
-         cream      => $self->{_im}->colorAllocate(200,200,240),
-         yellow     => $self->{_im}->colorAllocate(255,255,0),
-         orange     => $self->{_im}->colorAllocate(255,128,0),
-        );
+  my $x_centre  = $left_space + $x_radius;
+  my $y_centre  = $top_space + $y_radius;
+  my $height    = (2 * $y_radius) + $bottom_space + $top_space;
+  my $width     = (2 * $x_radius) + $left_space + $right_space;
 
-  $self->{colours} = \%colours;
+  $self->{_im} = GD::Image->new($width,$height);
 
-  my @shape_subs = (
-            \&draw_triangle,
-            \&draw_circle,
-            \&draw_square,
-            \&draw_diamond,
-           );
+  # define the colours and fonts
+  my %colours = map {$_ => $self->{_im}->colorAllocate(@{$COLOURS{$_}})} ($BGColour,$FGColour,@DSColours);
+  $self->{fonts}   = {
+      Title  => _font_size(1,$x_radius),
+      Label  => _font_size(2,$x_radius),
+      Legend => _font_size(3,$x_radius)
+  };
 
+  my (@Axis,@Label);
   my $Theta = 90;
-  my $i=$number_of_axis;
+  my $i = $number_of_axis;
   foreach my $axis (@axis) {
-    my $proportion;
-    my $theta;
-    my $x;
-    my $y;
+    my ($proportion,$theta,$x,$y);
 
     if ($i > 0) {
       $proportion = $i / $number_of_axis;
@@ -227,12 +270,12 @@ sub plot {
     $x = cos $theta - (2 * $theta);
     $y = sin $theta - (2 * $theta);
 
-    my $x_outer = ($x * 100) + $x_centre;
+    my $x_outer = ($x * $x_radius) + $x_centre;
     my $x_proportion =  ($x >= 0) ? $x : $x - (2 * $x) ;
     my $x_label = ($x_outer >= $x_centre) 
                     ? $x_outer + 3 
                     : $x_outer - ((length ( $axis->{Label} ) * 5) + (3 * $x_proportion));
-    my $y_outer = ($y * 100) + $y_centre;
+    my $y_outer = ($y * $y_radius) + $y_centre;
     my $y_proportion =  ($y >= 0) ? $y : $y - (2 * $y) ;
     my $y_label = ($y_outer >= $y_centre) 
                     ? $y_outer + (3 * $y_proportion) 
@@ -247,16 +290,18 @@ sub plot {
     $x_label =~ s/(\d+)\..*/$1/;
     $y_label =~ s/(\d+)\..*/$1/;
 
-    # draw axis
-    $self->{_im}->line($x_outer,$y_outer,$x_centre,$y_centre,$colours{black});
-    # add label for axis
-    $self->{_im}->string(gdTinyFont,$x_label, $y_label, $axis->{Label}, $colours{dark_grey});      
+    # draw axis and label
+    if ($scale{Style} eq "Fill")  {
+        push @Axis, [$x_outer, $y_outer, $x_centre, $y_centre, $colours{$scale{Colour}}];
+        push @Label, [$x_label, $y_label, $axis->{Label}, $colours{$scale{Colour}}];      
+    } else {
+        $self->{_im}->line($x_outer, $y_outer, $x_centre, $y_centre, $colours{$scale{Colour}});
+        $self->{_im}->string($self->{fonts}->{Label}, $x_label, $y_label, $axis->{Label}, $colours{$scale{Colour}});      
+    }
     $i--;
   }
 
   # loop through adding scale, and values
-  my @Numbers;
-
   $r = 0;
   $i = 0;
   foreach my $axis (@axis) {
@@ -271,10 +316,9 @@ sub plot {
       # convert theta to radians
       $theta1 *= ((2 * $PI) / 360);
       $theta2 *= ((2 * $PI) / 360);
-      for (my $j = 0 ; $j <= $scale{Max} ; $j+= int($scale{Max} / $scale{Divisions})) {
-        next if ($j == 0);
-        my $x_interval = $x_centre + ($x * (100 / $scale{Max}) * $j);
-        my $y_interval = $y_centre + ($y * (100 / $scale{Max}) * $j);
+      for (my $j = 0 ; $j <= $scale{Max} ; $j+=int($scale{Max} / $scale{Divisions})) {
+        my $x_interval = $x_centre + ($x * ($x_radius / $scale{Max}) * $j);
+        my $y_interval = $y_centre + ($y * ($y_radius / $scale{Max}) * $j);
         my $x1 = cos $theta1 - (2 * $theta1);
         my $y1 = sin $theta1 - (2 * $theta1);
         my $x2 = cos $theta2 - (2 * $theta2);
@@ -286,30 +330,22 @@ sub plot {
 
         $self->{_im}->line($x1_outer,$y1_outer,$x_interval,$y_interval,$colours{$scale{Colour}});
         $self->{_im}->line($x2_outer,$y2_outer,$x_interval,$y_interval,$colours{$scale{Colour}});
-
-        # Add Numbers to scale
-        if ($i == 0) {
-            push @Numbers, [$x_interval + 2,$y_interval - 11,$j,$colours{$scale{Colour}}];
-        }
       }
     }
 
     if ($scale{Style} eq "Polygon" || $scale{Style} eq "Fill")  {
-      for (my $j = 0 ; $j <= $scale{Max} ; $j+=($scale{Max} / $scale{Divisions})) {
-        next if ($j == 0);
-        my $x_interval_1 = $x_centre + ($x * (100 / $scale{Max}) * $j);
-        my $y_interval_1= $y_centre + ($y * (100 / $scale{Max}) * $j);
-        my $x_interval_2 = $x_centre + ($axis[$i-1]->{X} * (100 / $scale{Max}) * $j);
-        my $y_interval_2= $y_centre + ($axis[$i-1]->{Y} * (100 / $scale{Max}) * $j);
+      for (my $j = 0 ; $j <= $scale{Max} ; $j+=int($scale{Max} / $scale{Divisions})) {
+        my $x_interval_1 = $x_centre + ($x * ($x_radius / $scale{Max}) * $j);
+        my $y_interval_1 = $y_centre + ($y * ($y_radius / $scale{Max}) * $j);
+        my $x_interval_2 = $x_centre + ($axis[$i-1]->{X} * ($x_radius / $scale{Max}) * $j);
+        my $y_interval_2 = $y_centre + ($axis[$i-1]->{Y} * ($y_radius / $scale{Max}) * $j);
 
-        # Add Numbers to scale
-        if ($i == 0) {
-          push @Numbers, [$x_interval_1 + 2,$y_interval_1 - 11,$j,$colours{$scale{Colour}}];
-        } else {
+        if ($i > 0) {
+          next if ($j == 0);
           $self->{_im}->line($x_interval_1,$y_interval_1,$x_interval_2,$y_interval_2,$colours{$scale{Colour}});
           if ($i == $number_of_axis -1) {
-            my $x_interval_2 = $x_centre + ($axis[0]->{X} * (100 / $scale{Max}) * $j);
-            my $y_interval_2= $y_centre + ($axis[0]->{Y} * (100 / $scale{Max}) * $j);
+            my $x_interval_2 = $x_centre + ($axis[0]->{X} * ($x_radius / $scale{Max}) * $j);
+            my $y_interval_2 = $y_centre + ($axis[0]->{Y} * ($y_radius / $scale{Max}) * $j);
             $self->{_im}->line($x_interval_1,$y_interval_1,$x_interval_2,$y_interval_2,$colours{$scale{Colour}});
           }
         }
@@ -317,51 +353,47 @@ sub plot {
     }
 
     if ($scale{Style} eq "Circle")  {
-      for (my $j = 0 ; $j <= $scale{Max} ; $j+=($scale{Max} / $scale{Divisions})) {
-        if ($i == 0) {
-          my $x_interval = $x_centre + ($x * (100 / $scale{Max}) * $j);
-          my $y_interval = $y_centre + ($y * (100 / $scale{Max}) * $j);
+      for (my $j = 0 ; $j <= $scale{Max} ; $j+=int($scale{Max} / $scale{Divisions})) {
+        if ($i > 0) {
           next if ($j == 0);
-          push @Numbers, [$x_interval + 2,$y_interval - 11,$j,$colours{$scale{Colour}}];
-        } else {
-          my $radius = (200 / $scale{Max}) * $j;
-          $self->{_im}->arc($x_centre,$y_centre,$radius,$radius,$axis->{theta}-2,$axis[$i-1]->{theta}-2,$colours{$scale{Colour}});
-          $self->{_im}->arc($x_centre,$y_centre,$radius,$radius,$axis->{theta}+2,$axis[0]->{theta}-2,$colours{$scale{Colour}}) if ($i == $number_of_axis);
+          my $radius = (($y_radius * 2) / $scale{Max}) * $j;
+          $self->{_im}->arc($x_centre,$y_centre,$radius,$radius,$axis[0]->{theta}-2,$axis[$i-1]->{theta}-2,$colours{$scale{Colour}});
+          $self->{_im}->arc($x_centre,$y_centre,$radius,$radius,$axis[$i]->{theta}-2,$axis[0]->{theta}-2,$colours{$scale{Colour}});
         }
       }
     }
 
-    # draw value
+    # draw graph points
     if ($i != 0) {
       my $r = 0;
       foreach my $record (@{$self->{records}}) {
         my $value = $record->{Values}->{$axis->{Label}};
         my $colour = $colours{$record->{Colour}};
-        my $x_interval_1 = $x_centre + ($x * (100 / $scale{Max}) * $value);
-        my $y_interval_1 = $y_centre + ($y * (100 / $scale{Max}) * $value);
+        my $x_interval_1 = $x_centre + ($x * ($x_radius / $scale{Max}) * $value);
+        my $y_interval_1 = $y_centre + ($y * ($y_radius / $scale{Max}) * $value);
 
         if ($scale{Style} eq "Fill")  {
           push @{$record->{Points}}, [$x_interval_1,$y_interval_1];
           if ($i == $number_of_axis -1) {
             my $first_value  = $record->{Values}->{$axis[0]->{Label}};
-            my $x_interval_2 = $x_centre + ($axis[0]->{X} * (100 / $scale{Max}) * $first_value);
-            my $y_interval_2 = $y_centre + ($axis[0]->{Y} * (100 / $scale{Max}) * $first_value);
+            my $x_interval_2 = $x_centre + ($axis[0]->{X} * ($x_radius / $scale{Max}) * $first_value);
+            my $y_interval_2 = $y_centre + ($axis[0]->{Y} * ($y_radius / $scale{Max}) * $first_value);
             push @{$record->{Points}}, [$x_interval_2,$y_interval_2];
           }
         } else {
-          $self->draw_shape($x_interval_1,$y_interval_1,$record->{Colour}, $r);
+          $self->draw_shape($x_interval_1,$y_interval_1,$colours{$record->{Colour}}, $r);
 
           my $last_value = $record->{Values}->{$axis[$i-1]->{Label}};
-          my $x_interval_2 = $x_centre + ($axis[$i-1]->{X} * (100 / $scale{Max}) * $last_value);
-          my $y_interval_2 = $y_centre + ($axis[$i-1]->{Y} * (100 / $scale{Max}) * $last_value);
+          my $x_interval_2 = $x_centre + ($axis[$i-1]->{X} * ($x_radius / $scale{Max}) * $last_value);
+          my $y_interval_2 = $y_centre + ($axis[$i-1]->{Y} * ($y_radius / $scale{Max}) * $last_value);
           $self->{_im}->line($x_interval_1,$y_interval_1,$x_interval_2,$y_interval_2,$colour);
 
           if ($i == $number_of_axis -1) {
             my $first_value  = $record->{Values}->{$axis[0]->{Label}};
-            my $x_interval_2 = $x_centre + ($axis[0]->{X} * (100 / $scale{Max}) * $first_value);
-            my $y_interval_2 = $y_centre + ($axis[0]->{Y} * (100 / $scale{Max}) * $first_value);
+            my $x_interval_2 = $x_centre + ($axis[0]->{X} * ($x_radius / $scale{Max}) * $first_value);
+            my $y_interval_2 = $y_centre + ($axis[0]->{Y} * ($y_radius / $scale{Max}) * $first_value);
             $self->{_im}->line($x_interval_1,$y_interval_1,$x_interval_2,$y_interval_2,$colour);
-            $self->draw_shape($x_interval_2,$y_interval_2,$record->{Colour}, $r);
+            $self->draw_shape($x_interval_2,$y_interval_2,$colours{$record->{Colour}}, $r);
           }
           $r++;
         }
@@ -377,40 +409,49 @@ sub plot {
       $poly->addPt($_->[0],$_->[1]) for(@{$record->{Points}});
       $self->{_im}->filledPolygon($poly,$colours{$record->{Colour}});
     }
+
+    $self->{_im}->line(@$_)                             for(@Axis);
+    $self->{_im}->string($self->{fonts}->{Label},@$_)   for(@Label);
   }
 
   # draw scale values
-  pop @Numbers; # take off the outer value as it conflicts with the label
-  $self->{_im}->string(gdTinyFont,@{$_})    for(@Numbers);
+  my $x = $axis[0]->{X};
+  my $y = $axis[0]->{Y};
+  for (my $j = 0 ; $j <= $scale{Max} ; $j+=int($scale{Max} / $scale{Divisions})) {
+    my $x_interval_1 = $x_centre + ($x * ($x_radius / $scale{Max}) * $j);
+    my $y_interval_1= $y_centre + ($y * ($y_radius / $scale{Max}) * $j);
+    $self->{_im}->string($self->{fonts}->{Legend}, $x_interval_1 + 2,$y_interval_1 - 11,$j,$colours{$scale{Colour}});
+  }
 
   # draw Legend
-  my $longest_legend = 0;
-  foreach my $record (@{$self->{records}}) { 
-    $longest_legend = length $record->{Label} 
-      if ( $record->{Label} && length $record->{Label} > $longest_legend );
-  }
-  my ($legendX, $legendY) = (
-                   ($width / 2) - (6 * (length "Legend") / 2),
-                   ($height - ($legend_height + 10))
-                  );
-  $self->{_im}->string(gdSmallFont,$legendX,$legendY,"Legend",$colours{dark_grey});
-  my $legendX2 = $legendX - (($longest_legend * 5) + 2);
-  $legendY += 15;
-  $r = 0;
-
-  foreach my $record (@{$self->{records}}) {
-    my $colour = $record->{Colour};
-    $self->{_im}->string(gdTinyFont,$legendX2,$legendY,$record->{Label},$colours{$colour})  if($record->{Label});
-    $self->{_im}->line($legendX+10,$legendY+4,$legendX + 35,$legendY+4,$colours{$colour});
-    $self->draw_shape($legendX+22,$legendY+4,$record->{Colour}, $r);
+  if($self->{legend}) {
+    my $longest_legend = 0;
+    foreach my $record (@{$self->{records}}) { 
+      $longest_legend = length $record->{Label} 
+        if ( $record->{Label} && length $record->{Label} > $longest_legend );
+    }
+    my ($legendX, $legendY) = (
+           ($width / 2) - (6 * (length "Legend") / 2),
+           ($height - ($legend_height + 10))
+    );
+    $self->{_im}->string($self->{fonts}->{Legend},$legendX,$legendY,"Legend",$colours{$scale{Colour}});
+    my $legendX2 = $legendX - (($longest_legend * 5) + 2);
     $legendY += 15;
-    $r++;
+    $r = 0;
+
+    foreach my $record (@{$self->{records}}) {
+      $self->{_im}->string($self->{fonts}->{Label},$legendX2,$legendY,$record->{Label},$colours{$record->{Colour}})  if($record->{Label});
+      $self->{_im}->line($legendX+10,$legendY+4,$legendX + 35,$legendY+4,$colours{$record->{Colour}});
+      $self->draw_shape($legendX+22,$legendY+4,$colours{$record->{Colour}},$r);
+      $legendY += 15;
+      $r++;
+    }
   }
 
   # draw title
-  if($title) {
-      my ($titleX, $titleY) = ( ($width / 2) - (6 * (length $title) / 2),20);
-      $self->{_im}->string(gdSmallFont,$titleX,$titleY,$title,$colours{dark_grey});
+  if($self->{title}) {
+      my ($titleX, $titleY) = ( ($width / 2) - (6 * (length $self->{title}) / 2),20);
+      $self->{_im}->string($self->{fonts}->{Title},$titleX,$titleY,$self->{title},$colours{$scale{Colour}});
   }
   return 1;
 }
@@ -505,7 +546,7 @@ sub draw_diamond {
     $poly->addPt($x+6,$y);
     $poly->addPt($x+3,$y+3);
     $poly->addPt($x,$y);
-    $self->{_im}->filledPolygon($poly,$self->{colours}->{$colour});
+    $self->{_im}->filledPolygon($poly,$colour);
     return 1;
 }
 
@@ -519,14 +560,14 @@ sub draw_square {
     $poly->addPt($x+6,$y+6);
     $poly->addPt($x,$y+6);
     $poly->addPt($x,$y);
-    $self->{_im}->filledPolygon($poly,$self->{colours}->{$colour});
+    $self->{_im}->filledPolygon($poly,$colour);
     return 1;
 }
 
 sub draw_circle {
     my ($self,$x,$y,$colour) = @_;
-    $self->{_im}->arc($x,$y,7,7,0,360,$self->{colours}->{$colour});
-    $self->{_im}->fillToBorder($x,$y,$self->{colours}->{$colour},$self->{colours}->{$colour});
+    $self->{_im}->arc($x,$y,7,7,0,360,$colour);
+    $self->{_im}->fillToBorder($x,$y,$colour,$colour);
     return 1;
 }
 
@@ -539,7 +580,7 @@ sub draw_triangle {
     $poly->addPt($x+3,$y-6);
     $poly->addPt($x+6,$y);
     $poly->addPt($x,$y);
-    $self->{_im}->filledPolygon($poly,$self->{colours}->{$colour});
+    $self->{_im}->filledPolygon($poly,$colour);
     return 1;
 }
 
@@ -548,6 +589,14 @@ sub draw_cross {
     return 1;
 }
 
+sub _font_size {
+    my $scale  = shift || 1;
+    my $radius = int((shift || $FONT[0]) / 100 ) * 100;
+    $radius = $FONT[0]  if($radius < $FONT[0]);
+    $radius = $FONT[-1] if($radius > $FONT[-1]);
+
+    return $FONT{$radius}->[$scale];
+}
 
 1;
 __END__
@@ -560,8 +609,8 @@ L<Imager::Chart::Radial>
 
 =head1 AUTHOR
 
-  Current Maintainer: Barbie <barbie@missbarbell.co.uk>
   Original Author: Aaron J Trevena <aaron@droogs.org>
+  Current Maintainer: Barbie <barbie@missbarbell.co.uk>
 
 =head1 COPYRIGHT & LICENSE
 
@@ -572,4 +621,3 @@ L<Imager::Chart::Radial>
   under the same terms as Perl itself.
 
 =cut
-

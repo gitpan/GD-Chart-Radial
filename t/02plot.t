@@ -11,11 +11,11 @@ my @lots = ([qw/A B C D E F G/],[12,21,23,30,23,22,5],[10,20,21,24,28,15,9],[1,5
 my $max = 31;
 
 my %files = (
-    'test-default.png' => { 'MSWin32' => 'sTqWMlC0Jq2ayJKd0b2k4w', 'linux' => 'UH+rqVFkgoR0TQcdlhzqMg' },
-	'test-Circle.jpg'  => { 'MSWin32' => 'gK8IjabAWGCm7gs/7pGhAw', 'linux' => 'Ye9l+YqvZhwH6gzZpraeDA' },
-	'test-Fill.jpg'    => { 'MSWin32' => 'skI/xTqcS1AHGVcROWlEGQ', 'linux' => 'skI/xTqcS1AHGVcROWlEGQ' },
-	'test-Polygon.jpg' => { 'MSWin32' => 'HI8GRNpXNkbl1uhyhXEbbg', 'linux' => 'HI8GRNpXNkbl1uhyhXEbbg' },
-	'test-Notch.jpg'   => { 'MSWin32' => 'ShYxGvE71o3w/y0V+nXNpA', 'linux' => 'iO3Cck+BW7JgpFUPJSd7Zw' },
+    'test-default.png' => { 'MSWin32' => 'avn6NJBWE6VrNcdu1Kh8OQ', 'linux' => 'ooeembNOgWC71anI70XC4Q' },
+	'test-Circle.jpg'  => { 'MSWin32' => 'EFBBiWEUdhxwdx3N36667g', 'linux' => 'EFBBiWEUdhxwdx3N36667g' },
+	'test-Fill.jpg'    => { 'MSWin32' => 'QbczH2rII2t/seO7zpw8gw', 'linux' => 'QbczH2rII2t/seO7zpw8gw' },
+	'test-Polygon.jpg' => { 'MSWin32' => '42wgk5uanXjcPov88CyPnw', 'linux' => '42wgk5uanXjcPov88CyPnw' },
+	'test-Notch.jpg'   => { 'MSWin32' => '3gDHeBiCldPUj6JxtID17A', 'linux' => '3gDHeBiCldPUj6JxtID17A' },
 );
 
 
@@ -23,14 +23,17 @@ my %files = (
 unlink $_    for(keys %files);
 
 for my $style (qw(Fill Notch Circle Polygon)) {
-    $chart = GD::Chart::Radial->new(500,500,1);
+#    diag("Style: $style");
+    $chart = GD::Chart::Radial->new(500,500);
     isa_ok($chart,'GD::Chart::Radial','specified new');
 
     eval { $chart->set() };
     ok(!$@,'no errors on empty set');
+    diag($@)    if(@_);
 
     eval { $chart->plot() };
-    ok($@,'no errors on empty plot');
+    ok(!$@,'no errors on empty plot');
+    diag($@)    if(@_);
 
     eval {
         $chart->set(
@@ -39,13 +42,15 @@ for my $style (qw(Fill Notch Circle Polygon)) {
             y_max_value       => $max,
             y_tick_number     => 5,
             style             => $style,
-            colours           => [qw/light_grey red blue green/]
+            colours           => [qw/white light_grey red blue green/]
            );
     };
     ok(!$@,'no errors with set values');
+    diag($@)    if(@_);
 
     eval { $chart->plot(\@data) };
     ok(!$@,'no errors with plot values');
+    diag($@)    if(@_);
 
     SKIP: {
         my $file = "test-$style.jpg";
@@ -56,7 +61,7 @@ for my $style (qw(Fill Notch Circle Polygon)) {
         binmode $fh;
         print $fh $chart->jpg;
         $fh->close;
-        ok(-f $file);
+        ok(-f $file,'file exists');
     }
 }
 
@@ -66,6 +71,7 @@ for my $style (qw(Fill Notch Circle Polygon)) {
 
     eval { $chart->plot(\@lots) };
     ok(!$@,'no errors with plot values without any set');
+    diag($@)    if(@_);
 
     SKIP: {
         my $file = 'test-default.png';
@@ -76,7 +82,7 @@ for my $style (qw(Fill Notch Circle Polygon)) {
         binmode $fh;
         print $fh $chart->png;
         $fh->close;
-        ok(-f $file);
+        ok(-f $file,'file exists');
     }
 }
 

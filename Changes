@@ -1,5 +1,19 @@
 Revision history for Perl extension GD::Chart::Radial.
 
+0.03	10/06/2007
+	- Fixed image size to be either the width and height specified by the
+	  user, or creates a default size based on the minimum allowed.
+	- Scales the graph based on the width and height, rather than always
+	  being the minimum.
+	- Scale fonts according to the size of the graph.
+	- Fixed colour list to always be greater than the data sets.
+	- Allow user to specify background colour.
+	- Legend and Title both optional.
+	- Draw spines last if in Fill mode.
+	- Cleaned code to only process scale values once.
+	- Minor POD updates.
+	- Fixed style default back to Notch, as per POD.
+
 0.02	31/05/2007
 	- Maintaince now passes to Barbie.
 	- More POD
