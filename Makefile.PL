@@ -7,5 +7,5 @@ WriteMakefile(
     NO_META         => 1,
     
     ($] >= 5.005 ?
-      (AUTHOR       => 'aaron trevena <teejay@droogs.org>') : ()),
+      (AUTHOR       => 'Barbie <barbie@missbarbell.co.uk>') : ()),
 );

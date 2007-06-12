@@ -1,5 +1,9 @@
 Revision history for Perl extension GD::Chart::Radial.
 
+0.04	12/06/2007
+	- Minor document changes to complete the handover of maintenance from
+	  Aaron to Barbie.
+
 0.03	10/06/2007
 	- Fixed image size to be either the width and height specified by the
 	  user, or creates a default size based on the minimum allowed.

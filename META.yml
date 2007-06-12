@@ -3,6 +3,7 @@ name:                     GD-Chart-Radial
 version:                  0.03
 abstract:                 plot and output Radial or Radar charts using the GD library.
 author:
+  - Barbie <barbie@missbarbell.co.uk>
   - Aaron J Trevena <aaron@droogs.org>
 
 license:                  perl

@@ -30,7 +30,6 @@ OBTAINING THE MODULE
 The latest release version of GD-Chart-Radial can be downloaded
 from any CPAN site:
 
-    http://www.cpan.org/modules/by-authors/id/T/TE/TEEJAY/
     http://search.cpan.org/dist/GD-Chart-Radial/
 
 GD-Chart-Radial is distributed as a gzipped tar archive file:
@@ -79,14 +78,15 @@ When you have them all:
 
     % make && make test
 
-If there are any failures, it's best if you contact me. It may help
-other people who have the same problem.  I don't tend to read the Perl
-newsgroups or PerlMonks, so it's no use posting there.
+If there are any failures, either post them to the RT site, or email me
+directly. It's better to post to the RT site, as then others who may be 
+expereincing the same problem can at least add comments or post patches.
 
-When you report your trouble, be sure to send me the following
+When you send your report your trouble, be sure to send the following
 information;
+
     + result of `perl -V'
-    + output from 'make test' - ideally do 'make test TEST_VERBOSE=1 >& errs'
+    + output from 'make test TEST_VERBOSE=1 >& errs'
 
 Send those to bug-GD-Chart-Radial@rt.cpan.org and I'll get back to you as
 soon as I'm able.
@@ -102,10 +102,10 @@ If you have a copy of cpantest installed, type:
     % cpantest -g pass -nc -p `basename \`pwd\`` -auto
 
 Or:
+
     % cpantest -g pass -nc -p GD-Chart-Radial-0.01 -auto
 
 That will tell both me and other potential users that the module
 built correctly on your machine.
-
 
 Thanks.
