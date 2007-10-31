@@ -10,7 +10,7 @@ use warnings;
 use Data::Dumper;
 use GD;
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 =head1 NAME
 
@@ -56,12 +56,12 @@ my %COLOURS = (
 );
 
 my %FONT = (
-    100 => [undef, gdSmallFont, gdTinyFont, gdTinyFont],
-    200 => [undef, gdMediumBoldFont, gdSmallFont, gdTinyFont],
-    300 => [undef, gdLargeFont, gdMediumBoldFont, gdSmallFont],
-    400 => [undef, gdGiantFont, gdLargeFont, gdMediumBoldFont],
-    500 => [undef, gdGiantFont, gdGiantFont, gdLargeFont],
-    600 => [undef, gdGiantFont, gdGiantFont, gdGiantFont],
+    1 => [5, gdSmallFont, gdTinyFont, gdTinyFont],
+    2 => [10, gdMediumBoldFont, gdSmallFont, gdTinyFont],
+    3 => [15, gdLargeFont, gdMediumBoldFont, gdSmallFont],
+    4 => [20, gdGiantFont, gdLargeFont, gdMediumBoldFont],
+    5 => [20, gdGiantFont, gdGiantFont, gdLargeFont],
+    6 => [20, gdGiantFont, gdGiantFont, gdGiantFont],
 );
 
 my @FONT = sort keys %FONT;
@@ -157,6 +157,25 @@ sub plot {
   my @labels = @{shift(@values)};
   my @records;
 
+  if($self->{colours}) {
+      for(@{$self->{colours}}) {
+          next  unless(/^\#(..)(..)(..)$/ || /^\#(.)(.)(.)$/);
+          my ($r,$g,$b);
+          if(length($_) == 7 && /^\#(..)(..)(..)$/) {
+            ($r,$g,$b) = ($1,$2,$3);
+          } elsif(length($_) == 4 && /^\#(.)(.)(.)$/) {
+            ($r,$g,$b) = ("$1$1","$2$2","$3$3");
+          } else {
+            next;
+          }
+          $COLOURS{$_} = [hex($r),hex($g),hex($b)];
+      }
+
+      # ensure we only have valid colours
+      my @c = grep {$COLOURS{$_}} @{$self->{colours}};
+      $self->{colours} = \@c;
+  }
+
   my $BGColour  = $self->{colours} ? shift @{$self->{colours}} : 'white';
   my $FGColour  = $self->{colours} ? shift @{$self->{colours}} : 'black';
   my @DSColours = $self->{colours} ? @{$self->{colours}} : qw/red blue green yellow orange/;
@@ -169,10 +188,17 @@ sub plot {
     push @DSColours, @DSColours;
   }
 
-print STDERR "\n#Background=$BGColour"                              if($self->{debug});
-print STDERR "\n#Markings  =$FGColour"                              if($self->{debug});
-print STDERR "\n#Labels    =".(join(",",@DSColours))                if($self->{debug});
-print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{debug});
+print STDERR "\n#Colours:"                                      if($self->{debug});
+print STDERR "\n#Background=$BGColour"                          if($self->{debug});
+print STDERR "\n#Markings  =$FGColour"                          if($self->{debug});
+print STDERR "\n#Labels    =".(join(",",@DSColours))            if($self->{debug});
+print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))    if($self->{debug} && $self->{legend});
+print STDERR "\n"                                               if($self->{debug});
+
+print STDERR "\n#Data:"                                         if($self->{debug});
+print STDERR "\n#Labels=".(join(",",@labels))                   if($self->{debug});
+print STDERR "\n#Points=[".(join("][", map{join(",",@$_)} @values))."]" if($self->{debug});
+print STDERR "\n"                                               if($self->{debug});
 
   my $Max = 0;
   my $r = 0;
@@ -237,11 +263,14 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
   $x_radius = $y_radius     if($x_radius > $y_radius);
   $y_radius = $x_radius     if($y_radius > $x_radius);
 
+  $top_space += _font_offset($x_radius);
+
   my $x_centre  = $left_space + $x_radius;
   my $y_centre  = $top_space + $y_radius;
   my $height    = (2 * $y_radius) + $bottom_space + $top_space;
   my $width     = (2 * $x_radius) + $left_space + $right_space;
 
+print STDERR "\n#width=$width, height=$height\n"  if($self->{debug});
   $self->{_im} = GD::Image->new($width,$height);
 
   # define the colours and fonts
@@ -252,7 +281,7 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
       Legend => _font_size(3,$x_radius)
   };
 
-  my (@Axis,@Label);
+  my (@Axis,@Label,@Notch);
   my $Theta = 90;
   my $i = $number_of_axis;
   foreach my $axis (@axis) {
@@ -290,6 +319,9 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
     $x_label =~ s/(\d+)\..*/$1/;
     $y_label =~ s/(\d+)\..*/$1/;
 
+    # top label needs to be slightly offset to avoid the scale marking
+    $y_label -= _font_offset($x_radius)  if($i == $number_of_axis);
+
     # draw axis and label
     if ($scale{Style} eq "Fill")  {
         push @Axis, [$x_outer, $y_outer, $x_centre, $y_centre, $colours{$scale{Colour}}];
@@ -310,7 +342,7 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
     # draw scale
     my $theta1;
     my $theta2;
-    if ($scale{Style} eq "Notch")  {
+    if ($scale{Style} eq "Notch" || $scale{Style} eq "Fill")  {
       $theta1 = $axis->{theta} + 90;
       $theta2 = $axis->{theta} - 90;
       # convert theta to radians
@@ -328,8 +360,13 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
         my $x2_outer = ($x2 * 3 * ($j / $scale{Max})) + $x_interval;
         my $y2_outer = ($y2 * 3 * ($j / $scale{Max})) + $y_interval;
 
-        $self->{_im}->line($x1_outer,$y1_outer,$x_interval,$y_interval,$colours{$scale{Colour}});
-        $self->{_im}->line($x2_outer,$y2_outer,$x_interval,$y_interval,$colours{$scale{Colour}});
+        if($scale{Style} eq "Fill") {
+          push @Notch, [$x1_outer,$y1_outer,$x_interval,$y_interval,$colours{$scale{Colour}}];
+          push @Notch, [$x2_outer,$y2_outer,$x_interval,$y_interval,$colours{$scale{Colour}}];
+        } else {
+          $self->{_im}->line($x1_outer,$y1_outer,$x_interval,$y_interval,$colours{$scale{Colour}});
+          $self->{_im}->line($x2_outer,$y2_outer,$x_interval,$y_interval,$colours{$scale{Colour}});
+        }
       }
     }
 
@@ -369,6 +406,8 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
       foreach my $record (@{$self->{records}}) {
         my $value = $record->{Values}->{$axis->{Label}};
         my $colour = $colours{$record->{Colour}};
+        $value ||= 0;
+#print STDERR "Max=[$scale{Max}], value=[$value]"    if($self->{debug});
         my $x_interval_1 = $x_centre + ($x * ($x_radius / $scale{Max}) * $value);
         my $y_interval_1 = $y_centre + ($y * ($y_radius / $scale{Max}) * $value);
 
@@ -410,7 +449,7 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
       $self->{_im}->filledPolygon($poly,$colours{$record->{Colour}});
     }
 
-    $self->{_im}->line(@$_)                             for(@Axis);
+    $self->{_im}->line(@$_)                             for(@Axis,@Notch);
     $self->{_im}->string($self->{fonts}->{Label},@$_)   for(@Label);
   }
 
@@ -420,7 +459,7 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
   for (my $j = 0 ; $j <= $scale{Max} ; $j+=int($scale{Max} / $scale{Divisions})) {
     my $x_interval_1 = $x_centre + ($x * ($x_radius / $scale{Max}) * $j);
     my $y_interval_1= $y_centre + ($y * ($y_radius / $scale{Max}) * $j);
-    $self->{_im}->string($self->{fonts}->{Legend}, $x_interval_1 + 2,$y_interval_1 - 11,$j,$colours{$scale{Colour}});
+    $self->{_im}->string($self->{fonts}->{Legend}, $x_interval_1 + 2,$y_interval_1 - 4,$j,$colours{$scale{Colour}});
   }
 
   # draw Legend
@@ -431,8 +470,8 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
         if ( $record->{Label} && length $record->{Label} > $longest_legend );
     }
     my ($legendX, $legendY) = (
-           ($width / 2) - (6 * (length "Legend") / 2),
-           ($height - ($legend_height + 10))
+           ($width / 2) - (6 * (length "Legend") / 2) - ($x_radius * 0.75),
+           ($height - ($legend_height + 20))
     );
     $self->{_im}->string($self->{fonts}->{Legend},$legendX,$legendY,"Legend",$colours{$scale{Colour}});
     my $legendX2 = $legendX - (($longest_legend * 5) + 2);
@@ -460,7 +499,7 @@ print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))."\n"   if($self->{d
 
 returns a PNG image for output to a file or wherever.
 
-  open(IMG, '>test.jpg') or die $!;
+  open(IMG, '>test.png') or die $!;
   binmode IMG;
   print IMG $chart->png;
   close IMG
@@ -469,6 +508,7 @@ returns a PNG image for output to a file or wherever.
 
 sub png {
   my $self = shift;
+  return    unless($self->{_im}->can('png'));
   return $self->{_im}->png();
 }
 
@@ -480,7 +520,32 @@ returns a JPEG image for output to a file or elsewhere, see png.
 
 sub jpg {
   my $self = shift;
+  return    unless($self->{_im}->can('jpeg'));
   return $self->{_im}->jpeg(95);
+}
+
+=head2 gif
+
+returns a GIF image for output to a file or elsewhere, see png.
+
+=cut
+
+sub gif {
+  my $self = shift;
+  return    unless($self->{_im}->can('gif'));
+  return $self->{_im}->gif();
+}
+
+=head2 gd
+
+returns a GD image for output to a file or elsewhere, see png.
+
+=cut
+
+sub gd {
+  my $self = shift;
+  return    unless($self->{_im}->can('gd'));
+  return $self->{_im}->gd();
 }
 
 ##########################################################
@@ -591,15 +656,29 @@ sub draw_cross {
 
 sub _font_size {
     my $scale  = shift || 1;
-    my $radius = int((shift || $FONT[0]) / 100 ) * 100;
+    my $radius = int((shift || $FONT[0]) / 100 );
     $radius = $FONT[0]  if($radius < $FONT[0]);
     $radius = $FONT[-1] if($radius > $FONT[-1]);
 
     return $FONT{$radius}->[$scale];
 }
 
+sub _font_offset {
+    my $radius = int((shift || $FONT[0]) / 100 );
+
+    return $FONT{$radius}->[0];
+}
+
 1;
 __END__
+
+=head1 TODO
+
+=over 4
+
+=item * Allow long labels to run on multiple lines.
+
+=back
 
 =head1 SEE ALSO
 

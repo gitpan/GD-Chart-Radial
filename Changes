@@ -1,5 +1,20 @@
 Revision history for Perl extension GD::Chart::Radial.
 
+0.05	31/10/2007
+	- added support for user colours of the format #abcd12 or '#fd3'
+	- added examples, more to follow
+	- notches now added to filled charts
+	- disabled the Linux MD5 check for the image created with defaults, as 
+	  the different variants of Linux appear to create slightly different 
+	  files. For OSs without an MD5 check we now print diagnostic info,
+	  which can be forwarded to me for future releases.
+	- realigned the scale values and the top label to better positions.
+	- added TODO section in POD.
+	- added checks to ensure PNG and JPEG output support is provided.
+	- added support for output formats GIF and GD.
+	- changed tests to use GD for MD5 checks, as support these is more 
+	  likely to exist :)
+
 0.04	12/06/2007
 	- Minor document changes to complete the handover of maintenance from
 	  Aaron to Barbie.
