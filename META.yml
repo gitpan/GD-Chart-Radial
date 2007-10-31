@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                     GD-Chart-Radial
-version:                  0.05
+version:                  0.06
 abstract:                 plot and output Radial or Radar charts using the GD library.
 author:
   - Barbie <barbie@missbarbell.co.uk>
@@ -26,7 +26,7 @@ build_requires:
 provides:
   GD::Chart::Radial:
     file:     lib/GD/Chart/Radial.pm
-    version:  0.05
+    version:  0.06
 no_index:
   directory:
     - t

@@ -1,5 +1,13 @@
 Revision history for Perl extension GD::Chart::Radial.
 
+0.06	31/10/2007
+	- simplified colour code checks.
+	- added tests for colour matching.
+	- commented out the debugging as this should only be used as a last 
+	  resort if things are going wrong.
+	- added support for using crosses to disquish data sets.
+	- Devel::Cover = 95.8%
+
 0.05	31/10/2007
 	- added support for user colours of the format #abcd12 or '#fd3'
 	- added examples, more to follow

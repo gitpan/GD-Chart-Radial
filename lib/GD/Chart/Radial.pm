@@ -10,7 +10,7 @@ use warnings;
 use Data::Dumper;
 use GD;
 
-our $VERSION = 0.05;
+our $VERSION = 0.06;
 
 =head1 NAME
 
@@ -159,16 +159,15 @@ sub plot {
 
   if($self->{colours}) {
       for(@{$self->{colours}}) {
-          next  unless(/^\#(..)(..)(..)$/ || /^\#(.)(.)(.)$/);
+          next  unless(/^\#[a-f0-9]{3}([a-f0-9]{3})?$/i);
           my ($r,$g,$b);
-          if(length($_) == 7 && /^\#(..)(..)(..)$/) {
-            ($r,$g,$b) = ($1,$2,$3);
-          } elsif(length($_) == 4 && /^\#(.)(.)(.)$/) {
-            ($r,$g,$b) = ("$1$1","$2$2","$3$3");
+          if(length($_) == 7) {
+            my ($r,$g,$b) = (/^\#(..)(..)(..)$/);
+            $COLOURS{$_} = [hex($r),hex($g),hex($b)];
           } else {
-            next;
+            my ($r,$g,$b) = (/^\#(.)(.)(.)$/);
+            $COLOURS{$_} = [hex("$r$r"),hex("$g$g"),hex("$b$b")];
           }
-          $COLOURS{$_} = [hex($r),hex($g),hex($b)];
       }
 
       # ensure we only have valid colours
@@ -188,17 +187,17 @@ sub plot {
     push @DSColours, @DSColours;
   }
 
-print STDERR "\n#Colours:"                                      if($self->{debug});
-print STDERR "\n#Background=$BGColour"                          if($self->{debug});
-print STDERR "\n#Markings  =$FGColour"                          if($self->{debug});
-print STDERR "\n#Labels    =".(join(",",@DSColours))            if($self->{debug});
-print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}))    if($self->{debug} && $self->{legend});
-print STDERR "\n"                                               if($self->{debug});
+#print STDERR "\n#Colours:";
+#print STDERR "\n#Background=$BGColour";
+#print STDERR "\n#Markings  =$FGColour";
+#print STDERR "\n#Labels    =".(join(",",@DSColours));
+#print STDERR "\n#Legends   =".(join(",",@{$self->{legend}}));
+#print STDERR "\n";
 
-print STDERR "\n#Data:"                                         if($self->{debug});
-print STDERR "\n#Labels=".(join(",",@labels))                   if($self->{debug});
-print STDERR "\n#Points=[".(join("][", map{join(",",@$_)} @values))."]" if($self->{debug});
-print STDERR "\n"                                               if($self->{debug});
+#print STDERR "\n#Data:";
+#print STDERR "\n#Labels=".(join(",",@labels));
+#print STDERR "\n#Points=[".(join("][", map{join(",",@$_)} @values))."]";
+#print STDERR "\n";
 
   my $Max = 0;
   my $r = 0;
@@ -216,14 +215,16 @@ print STDERR "\n"                                               if($self->{debug
   }
 
   $self->{records} = \@records;
+  $self->{y_max_value}   ||= $Max;
+  $self->{y_tick_number} ||= $Max;
 
   my $PI = $self->{PI};
 
   # style can be Fill, Circle, Polygon or Notch
   my %scale = (
-           Max       => $self->{y_max_value}    || $Max,
-           Divisions => $self->{y_tick_number}  || $Max,
-           Style     => $self->{style}          || "Notch",
+           Max       => $self->{y_max_value},
+           Divisions => $self->{y_tick_number},
+           Style     => $self->{style} || "Notch",
            Colour    => $FGColour
           );
 
@@ -270,7 +271,7 @@ print STDERR "\n"                                               if($self->{debug
   my $height    = (2 * $y_radius) + $bottom_space + $top_space;
   my $width     = (2 * $x_radius) + $left_space + $right_space;
 
-print STDERR "\n#width=$width, height=$height\n"  if($self->{debug});
+#print STDERR "\n#width=$width, height=$height\n"  if($self->{debug});
   $self->{_im} = GD::Image->new($width,$height);
 
   # define the colours and fonts
@@ -552,7 +553,7 @@ sub gd {
 
 =head2 Internal Methods
 
-In order to draw the points on the chart, the following 5 shape drawing 
+In order to draw the points on the chart, the following 6 shape drawing 
 functions are used:
 
 =over 4
@@ -571,8 +572,6 @@ functions are used:
 
 =back
 
-However, the latter is not supported yet.
-
 =cut
 
 sub draw_shape {
@@ -581,9 +580,10 @@ sub draw_shape {
     if (exists $self->{records}->[$i]->{Shape} ) {
         $shape = $self->{records}->[$i]->{Shape};
     } else {
-        $shape = ($i > 3) ? int ($i / ($i / 4))  : $i ;
+        $shape = ($i > 4) ? int ($i % 5)  : $i ;
         $self->{records}->[$i]->{Shape} = $shape;
     }
+
     if ($shape == 0) {
         $self->draw_diamond($x,$y,$colour);
         return 1;
@@ -598,6 +598,10 @@ sub draw_shape {
     }
     if ($shape == 3) {
         $self->draw_triangle($x,$y,$colour);
+        return 1;
+    }
+    if ($shape == 4) {
+        $self->draw_cross($x,$y,$colour);
         return 1;
     }
 }
@@ -650,7 +654,9 @@ sub draw_triangle {
 }
 
 sub draw_cross {
-    warn "not drawing crosses yet!\n";
+    my ($self,$x,$y,$colour) = @_;
+    $self->{_im}->line($x-3,$y,$x+3,$y,$colour);
+    $self->{_im}->line($x,$y-3,$x,$y+3,$colour);
     return 1;
 }
 

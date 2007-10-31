@@ -10,6 +10,7 @@ META.yml
 README
 t/01load.t
 t/02plot.t
+t/03points.t
 t/90podtest.t
 t/91podcover.t
 t/94metatest.t

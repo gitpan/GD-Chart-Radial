@@ -1,14 +1,22 @@
 #!/usr/bin/perl -w
 use strict;
 
-use Test::More  tests => 35;
+
+# Note that this test file is purely to test that large data sets can be 
+# supported with all the point shapes being used.
+
+
+use Test::More  tests => 7;
 use GD::Chart::Radial;
 use IO::File;
 
 my $chart;
-my @data = ([qw/A B C D E F G/],[12,21,23,30,23,22,5],[10,20,21,24,28,15,9]);
-my @lots = ([qw/A B C D E F G/],[12,21,23,30,23,22,5],[10,20,21,24,28,15,9],[1,5,7,8,9,4,2],[15,14,10,3,20,18,16]);
-my $max = 31;
+my $max = 40;
+my @lots = ([qw/A B C/],
+            [39,39,39],[38,38,38],[37,37,37],[36,36,36],[35,35,35],[34,34,34],[33,33,33],[32,32,32],[31,31,31],[30,30,30],
+            [29,29,29],[28,28,28],[27,27,27],[26,26,26],[25,25,25],[24,24,24],[23,23,23],[22,22,22],[21,21,21],[20,20,20],
+            [19,19,19],[18,18,18],[17,17,17],[16,16,16],[15,15,15],[14,14,14],[13,13,13],[12,12,12],[11,11,11],[10,10,10],
+            [9,9,9],[8,8,8],[7,7,7],[6,6,6],[5,5,5],[4,4,4],[3,3,3],[2,2,2],[1,1,1],[0,0,0]);
 
 my %files;
 while(<DATA>) {
@@ -18,11 +26,11 @@ while(<DATA>) {
     $files{$file}{$os} = $md5;
 }
 
-# clean up
-unlink $_    for(keys %files);
+my $file = 'point-default.jpg';
+unlink $file    if(-f $file);
 
-for my $style (qw(Fill Notch Circle Polygon)) {
-#    diag("Style: $style");
+{
+    my $style = 'Notch';
     $chart = GD::Chart::Radial->new(500,500);
     isa_ok($chart,'GD::Chart::Radial','specified new');
 
@@ -47,57 +55,28 @@ for my $style (qw(Fill Notch Circle Polygon)) {
     ok(!$@,'no errors with set values');
     diag($@)    if(@_);
 
-    eval { $chart->plot(\@data) };
+    eval { $chart->plot(\@lots) };
     ok(!$@,'no errors with plot values');
     diag($@)    if(@_);
 
+    my $diag;
     SKIP: {
-        my $file = "plot-$style.gd";
         my $fh;
-        skip "Write access disabled for test files",1
+        skip "Write access disabled for test files",2
             unless($fh = IO::File->new($file,'w'));
 
         binmode $fh;
-        print $fh $chart->gd;
+        print $fh $chart->jpg;
         $fh->close;
         ok(-f $file,"file [$file] exists");
-    }
-}
 
-{
-    $chart = GD::Chart::Radial->new();
-    isa_ok($chart,'GD::Chart::Radial','default new');
-
-    eval { $chart->plot(\@lots) };
-    ok(!$@,'no errors with plot values without any set');
-    diag($@)    if(@_);
-
-    for my $type (qw(png gif jpg gd)) {
         SKIP: {
-            my $file = 'plot-default.'.$type;
-            my $fh;
-            skip "Write access disabled for test files",1
-                unless($fh = IO::File->new($file,'w'));
-
-            binmode $fh;
-            print $fh $chart->$type;
-            $fh->close;
-            ok(-f $file,"file [$file] exists");
-        }
-    }
-}
-
-SKIP: {
-    eval "use Digest::MD5";
-    skip "Need Digest::MD5 to verify checksums of images", 5    if($@);
-    my $diag;
-
-    for my $file (keys %files) {
-        SKIP: {
+            eval "use Digest::MD5";
+            skip "Need Digest::MD5 to verify checksums of images", 1  if($@);
             skip 'Write access disabled for test files',1   unless(-f $file);
-            skip 'GD support required in GD::Image',1           if(-z $file);
+            skip 'JEPG support required in GD::Image',1         if(-z $file);
 
-            if(my $fh = IO::File->new($file,'r')) {
+            if($fh = IO::File->new($file,'r')) {
                 my $md5 = Digest::MD5->new();
                 $md5->addfile($fh);
                 $fh->close;
@@ -121,18 +100,9 @@ SKIP: {
 }
 
 # clean up
-unlink $_    for(keys %files);
-unlink $_    for(qw(plot-default.png plot-default.gif plot-default.jpg));
+unlink $file    if(-f $file);
 
 __END__
 __DATA__
-plot-Polygon.gd,MSWin32,sxbSl4DAlaRwOYKEmfZf0Q
-plot-Fill.gd,MSWin32,xt5S7omdmadqy2LSvQGMLg
-plot-Notch.gd,MSWin32,BLSg3z00r9VDlvWyh+5vFw
-plot-default.gd,MSWin32,4NZkvPOG137ZAXIarQE6tA
-plot-Circle.gd,MSWin32,UNraB7A0MA8u4sDxqtMspQ
-plot-Polygon.gd,linux,sxbSl4DAlaRwOYKEmfZf0Q
-plot-Fill.gd,linux,xt5S7omdmadqy2LSvQGMLg
-plot-Notch.gd,linux,BLSg3z00r9VDlvWyh+5vFw
-plot-default.gd,linux,4NZkvPOG137ZAXIarQE6tA
-plot-Circle.gd,linux,UNraB7A0MA8u4sDxqtMspQ
+point-default.jpg,MSWin32,3HkZQcKAonZCYGW5ZodlJg
+point-default.jpg,linux,UdfOYdM6ffgTVvodgQf2Jg
