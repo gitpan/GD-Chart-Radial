@@ -1,5 +1,8 @@
 Revision history for Perl extension GD::Chart::Radial.
 
+0.07	02/11/2007
+	- removed all MD5 tests as they seem to be causing too many problems.
+
 0.06	31/10/2007
 	- simplified colour code checks.
 	- added tests for colour matching.

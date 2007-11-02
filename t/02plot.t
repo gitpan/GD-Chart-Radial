@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 
-use Test::More  tests => 35;
+use Test::More  tests => 30;
 use GD::Chart::Radial;
 use IO::File;
 
@@ -10,19 +10,12 @@ my @data = ([qw/A B C D E F G/],[12,21,23,30,23,22,5],[10,20,21,24,28,15,9]);
 my @lots = ([qw/A B C D E F G/],[12,21,23,30,23,22,5],[10,20,21,24,28,15,9],[1,5,7,8,9,4,2],[15,14,10,3,20,18,16]);
 my $max = 31;
 
-my %files;
-while(<DATA>) {
-    next    if(/^\s*$/ || /^__/);
-    chomp;
-    my ($file,$os,$md5) = split(',');
-    $files{$file}{$os} = $md5;
-}
+my @files = qw(plot-Polygon.gd plot-Fill.gd plot-Notch.gd plot-default.gd plot-Circle.gd);
 
 # clean up
-unlink $_    for(keys %files);
+unlink $_    for(@files);
 
 for my $style (qw(Fill Notch Circle Polygon)) {
-#    diag("Style: $style");
     $chart = GD::Chart::Radial->new(500,500);
     isa_ok($chart,'GD::Chart::Radial','specified new');
 
@@ -87,52 +80,7 @@ for my $style (qw(Fill Notch Circle Polygon)) {
     }
 }
 
-SKIP: {
-    eval "use Digest::MD5";
-    skip "Need Digest::MD5 to verify checksums of images", 5    if($@);
-    my $diag;
-
-    for my $file (keys %files) {
-        SKIP: {
-            skip 'Write access disabled for test files',1   unless(-f $file);
-            skip 'GD support required in GD::Image',1           if(-z $file);
-
-            if(my $fh = IO::File->new($file,'r')) {
-                my $md5 = Digest::MD5->new();
-                $md5->addfile($fh);
-                $fh->close;
-                if($files{$file}->{$^O}) {
-                    is($md5->b64digest,$files{$file}->{$^O},'MD5 passed for '.$file);
-                } else {
-                    $diag .= "\n$file,$^O,".($md5->b64digest);
-                    ok(1,'unable to verify file: '.$file);
-                }
-            } else {
-                ok(0,'failed to open file: '.$file);
-            }
-        }
-    }
-
-    if($diag) {
-        diag("\n\nTo help improve GD::Chart::Radial please forward the diagnostics below");
-        diag("to me, Barbie <barbie\@missbarbell.co.uk>. Thanks in advance.");
-        diag("$diag");
-    }
-}
-
 # clean up
-unlink $_    for(keys %files);
+unlink $_    for(@files);
 unlink $_    for(qw(plot-default.png plot-default.gif plot-default.jpg));
 
-__END__
-__DATA__
-plot-Polygon.gd,MSWin32,sxbSl4DAlaRwOYKEmfZf0Q
-plot-Fill.gd,MSWin32,xt5S7omdmadqy2LSvQGMLg
-plot-Notch.gd,MSWin32,BLSg3z00r9VDlvWyh+5vFw
-plot-default.gd,MSWin32,4NZkvPOG137ZAXIarQE6tA
-plot-Circle.gd,MSWin32,UNraB7A0MA8u4sDxqtMspQ
-plot-Polygon.gd,linux,sxbSl4DAlaRwOYKEmfZf0Q
-plot-Fill.gd,linux,xt5S7omdmadqy2LSvQGMLg
-plot-Notch.gd,linux,BLSg3z00r9VDlvWyh+5vFw
-plot-default.gd,linux,4NZkvPOG137ZAXIarQE6tA
-plot-Circle.gd,linux,UNraB7A0MA8u4sDxqtMspQ
