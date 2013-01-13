@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
-
 use strict;
+
 use GD::Chart::Radial;
 
 my $chart = GD::Chart::Radial->new(500,500,1);

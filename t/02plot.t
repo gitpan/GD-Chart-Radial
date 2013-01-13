@@ -83,4 +83,3 @@ for my $style (qw(Fill Notch Circle Polygon)) {
 # clean up
 unlink $_    for(@files);
 unlink $_    for(qw(plot-default.png plot-default.gif plot-default.jpg));
-

@@ -1,16 +1,17 @@
 #####################################################################
 # Radial - A module to generate radial charts as JPG and PNG images #
 # (c) Copyright 2002,2004-2007 Aaron J  Trevena                     #
-# (c) Copyright 2007 Barbie                                         #
+# (c) Copyright 2007-2013 Barbie                                    #
 #####################################################################
 package GD::Chart::Radial;
 
 use strict;
 use warnings;
+
 use Data::Dumper;
 use GD;
 
-our $VERSION = 0.07;
+our $VERSION = '0.08';
 
 =head1 NAME
 
@@ -112,12 +113,12 @@ Style can be Notch, Circle, Polygon or Fill. The default style is Notch. Where
 style is set to Fill, the data sets are also filled, as opposed to lines drawn
 for all other styles
 
-Colours can be any of the following: white, black, red, blue, purple, green, 
+Colours can be any of the following: white, black, red, blue, purple, green,
 grey, light_grey, dark_grey, cream, yellow, orange. The first colour is used
 for the background colour, the second is used for the scale markings, while
-the remaining colours represent the different data sets. If there are less 
-colours than data sets, colours will be taken from the unused set of defined 
-colours. 
+the remaining colours represent the different data sets. If there are less
+colours than data sets, colours will be taken from the unused set of defined
+colours.
 
 The default list of colours are white, black, red, blue and green, i.e. white
 background, black scale markings and data sets in red blue and green.
@@ -139,7 +140,7 @@ sub set {
 
 =head2 plot
 
-This method plots the chart based on the data provided and the attributes of 
+This method plots the chart based on the data provided and the attributes of
 the graph.
 
   my @data = ([qw/A B C D E F G/],
@@ -302,13 +303,13 @@ sub plot {
 
     my $x_outer = ($x * $x_radius) + $x_centre;
     my $x_proportion =  ($x >= 0) ? $x : $x - (2 * $x) ;
-    my $x_label = ($x_outer >= $x_centre) 
-                    ? $x_outer + 3 
+    my $x_label = ($x_outer >= $x_centre)
+                    ? $x_outer + 3
                     : $x_outer - ((length ( $axis->{Label} ) * 5) + (3 * $x_proportion));
     my $y_outer = ($y * $y_radius) + $y_centre;
     my $y_proportion =  ($y >= 0) ? $y : $y - (2 * $y) ;
-    my $y_label = ($y_outer >= $y_centre) 
-                    ? $y_outer + (3 * $y_proportion) 
+    my $y_label = ($y_outer >= $y_centre)
+                    ? $y_outer + (3 * $y_proportion)
                     : $y_outer - (9 * $y_proportion);
 
     $axis->{X} = $x;
@@ -326,10 +327,10 @@ sub plot {
     # draw axis and label
     if ($scale{Style} eq "Fill")  {
         push @Axis, [$x_outer, $y_outer, $x_centre, $y_centre, $colours{$scale{Colour}}];
-        push @Label, [$x_label, $y_label, $axis->{Label}, $colours{$scale{Colour}}];      
+        push @Label, [$x_label, $y_label, $axis->{Label}, $colours{$scale{Colour}}];
     } else {
         $self->{_im}->line($x_outer, $y_outer, $x_centre, $y_centre, $colours{$scale{Colour}});
-        $self->{_im}->string($self->{fonts}->{Label}, $x_label, $y_label, $axis->{Label}, $colours{$scale{Colour}});      
+        $self->{_im}->string($self->{fonts}->{Label}, $x_label, $y_label, $axis->{Label}, $colours{$scale{Colour}});
     }
     $i--;
   }
@@ -466,8 +467,8 @@ sub plot {
   # draw Legend
   if($self->{legend}) {
     my $longest_legend = 0;
-    foreach my $record (@{$self->{records}}) { 
-      $longest_legend = length $record->{Label} 
+    foreach my $record (@{$self->{records}}) {
+      $longest_legend = length $record->{Label}
         if ( $record->{Label} && length $record->{Label} > $longest_legend );
     }
     my ($legendX, $legendY) = (
@@ -553,7 +554,7 @@ sub gd {
 
 =head2 Internal Methods
 
-In order to draw the points on the chart, the following 6 shape drawing 
+In order to draw the points on the chart, the following 6 shape drawing
 functions are used:
 
 =over 4
@@ -700,7 +701,7 @@ L<Imager::Chart::Radial>
 =head1 COPYRIGHT & LICENSE
 
   Copyright (C) 2002,2004-2007 Aaron Trevena
-  Copyright (C) 2007 Barbie
+  Copyright (C) 2007-2013 Barbie
 
   This module is free software; you can redistribute it or modify it
   under the same terms as Perl itself.
