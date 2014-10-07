@@ -11,7 +11,7 @@ use warnings;
 use Data::Dumper;
 use GD;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 =head1 NAME
 
@@ -701,9 +701,9 @@ L<Imager::Chart::Radial>
 =head1 COPYRIGHT & LICENSE
 
   Copyright (C) 2002,2004-2007 Aaron Trevena
-  Copyright (C) 2007-2013 Barbie
+  Copyright (C) 2007-2014 Barbie
 
-  This module is free software; you can redistribute it or modify it
+  This distribution is free software; you can redistribute it or modify it
   under the same terms as Perl itself.
 
 =cut

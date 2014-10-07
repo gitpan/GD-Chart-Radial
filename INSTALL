@@ -6,22 +6,27 @@ The instructions are basically as per any Perl module.
 INSTALLING AUTOMATICALLY
 ------------------------
 
-The easiest way to install is via CPAN or CPANPLUS:
+The easiest way to install is via CPAN, CPANPLUS or cpanminus:
 
 CPAN:
 
-    % cpan                        [as root]
-    > install GD-Chart-Radial
+    % perl -MCPAN -e shell                    [as root]
+    > install GD::Chart::Radial
     > quit
 
 CPANPLUS:
 
     % cpanp
-    > i GD-Chart-Radial
+    > i GD::Chart::Radial
     > q
 
-See your local 'perldoc CPAN' or 'perldoc CPANPLUS' for
-instructions on setting up and configuring CPAN or CPANPLUS.
+cpanminus:
+
+    % cpanm GD::Chart::Radial
+
+See your local documentation ('perldoc CPAN', 'perldoc CPANPLUS' or 
+'perldoc cpanm') for further instructions on setting up and configuring your
+chosen installer.
 
 
 OBTAINING THE MODULE
@@ -109,3 +114,5 @@ That will tell both me and other potential users that the module
 built correctly on your machine.
 
 Thanks.
+Barbie.
+http://barbie.missbarbell.co.uk/

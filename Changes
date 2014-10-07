@@ -1,4 +1,10 @@
-Revision history for Perl extension GD::Chart::Radial.
+Revision history for GD-Chart-Radial
+====================================
+
+0.09    2014-10-07
+        - documentation updates.
+        - fixed license fields in META.json to be lists.
+        - extended META test suite.
 
 0.08    2013-01-13
         - removed Artistic file.
